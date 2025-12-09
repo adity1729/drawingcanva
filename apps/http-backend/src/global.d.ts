@@ -1,1 +1,1 @@
-import "@repo/backend-common/types";
+import "@repo/backend-common/express-types";

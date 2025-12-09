@@ -4,7 +4,8 @@
   "main": "index.js",
   "exports": {
     "./config": "./src/index.ts",
-    "./types": "./src/types/express.d.ts"
+    "./types": "./src/types/types.ts",
+    "./express-types": "./src/types/express.d.ts"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
