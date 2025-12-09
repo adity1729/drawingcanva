@@ -6,6 +6,7 @@ const drawQueue = createDrawQueue();
 const eraseQueue = createEraseQueue();
 
 drawQueue.process(async (job: Job<DrawJob>) => {
+    console.log("Processing draw job", job.data)
     const { roomId, data, userId } = job.data;
 
     try {

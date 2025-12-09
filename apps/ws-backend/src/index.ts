@@ -21,15 +21,19 @@ interface User {
 const users: User[] = []
 
 wss.on("connection", function connection(ws, request) {
+
+    console.log("Client connected trying")
     const url = request.url
 
     if (!url) {
         return;
     }
+    console.log("url", url)
 
     const queryParams = new URLSearchParams(url.split("?")[1])
     const token = queryParams.get("token") || ""
     const userId = checkUser(token)
+    console.log("userId", userId)
 
     if (userId === null) {
         ws.close()
@@ -77,12 +81,19 @@ wss.on("connection", function connection(ws, request) {
         if (parsedData.type === "draw") {
             const roomId = parsedData.roomId
             const data = parsedData.data
-
+            console.log("draw", data)
             drawQueue.add({
                 roomId,
                 data,
                 userId
             })
+            // await prismaClient.shape.create({
+            //     data: {
+            //         roomId: Number(roomId),
+            //         data,
+            //         userId
+            //     }
+            // });
 
             users.forEach(user => {
                 if (user.rooms.includes(roomId) && user.ws !== ws) {

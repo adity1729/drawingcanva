@@ -46,29 +46,27 @@ const Dashboard = () => {
     )
   }
 
- 
+
 
 
   const room = user.user.room || [];
-
-  if (room.length === 0) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-2xl font-semibold text-gray-800">Rooms Not Found</div>
-      </div>
-    )
-  }
-
 
   return (
     <div className="min-h-screen bg-white">
       <main className="p-8">
         <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-black">Your Rooms</h1>
-        <Link href="/create-room">
+          <h1 className="text-3xl font-bold text-black">Your Rooms</h1>
+          <Link href="/create-room">
             <Button>Create Room</Button>
-        </Link>
+          </Link>
         </div>
+        {
+          room.length === 0 && (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+              <div className="text-2xl font-semibold text-gray-800">Rooms Not Found</div>
+            </div>
+          )
+        }
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {room.map((r) => (
             <a href={`/room/${r.roomName}`} key={r.id}>
