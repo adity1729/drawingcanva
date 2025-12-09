@@ -1,138 +1,195 @@
-import express from "express";
-import jwt from "jsonwebtoken";
-import { JWT_SECRET } from '@repo/backend-common/config';
-import { middleware } from "./middleware";
-import { CreateUserSchema, SigninSchema, CreateRoomSchema } from "@repo/common/types";
 import { prismaClient } from "@repo/db/client";
+import express from "express"
+import { RegisterSchema, LoginSchema, CreateRoomSchema } from "@repo/common/types"
+import brcypt from "bcryptjs"
+import jwt from "jsonwebtoken"
+import 'dotenv/config'
+import cors from "cors"
+import { middleware } from "./middleware";
 
-const app = express();
+const app = express()
 
-app.use(express.json());
+app.use(express.json())
+app.use(cors())
+
+
 
 app.post("/signup", async (req, res) => {
+    console.log('inside signup', req.body)
+    const validatedFields = RegisterSchema.safeParse(req.body)
+    if (!validatedFields.success) {
+        res.json({
+            error: "Invalid Fields"
+        })
+        return;
+    }
 
-    const data = CreateUserSchema.safeParse(req.body);
-    if (!data.success) {
+    const { username, email, password } = validatedFields.data
+
+    const hashedPassword = await brcypt.hash(password, 10)
+
+    const existingUser = await prismaClient.user.findUnique({
+        where: {
+            email
+        }
+    })
+
+    if (existingUser) {
         res.json({
-            message: "Incorrect inputs"
+            error: "User Already Exists!"
         })
         return;
     }
-    const { name, username, password } = data.data;
-    try {
-        const user = await prismaClient.user.create({
-            data: {
-                email: username,
-                password: password,
-                name: name
-            }
-        })
-        res.json({
-            userId: user.id
-        })
-    } catch (e) {
-        console.log(e);
-        res.json({
-            message: "User already exists"
-        })
-        return;
-    }
+
+    const user = await prismaClient.user.create({
+        data: {
+            username,
+            email,
+            password: hashedPassword
+        }
+    })
+
+
+    res.json({
+        user
+    })
 })
 
 app.post("/signin", async (req, res) => {
-    const data = SigninSchema.safeParse(req.body);
-    if (!data.success) {
+    const validatedFields = LoginSchema.safeParse(req.body)
+
+    if (!validatedFields || !validatedFields.success || !validatedFields.data.password) {
         res.json({
-            message: "Incorrect inputs"
+            error: "Invalid Fields!"
         })
         return;
     }
 
-    const { username, password } = data.data;
+    const { email, password } = validatedFields.data
+
     const user = await prismaClient.user.findUnique({
         where: {
-            email: username,
-            password: password
+            email
         }
     })
+
     if (!user) {
-        res.status(401).json({
-            message: "Incorrect credentials"
+        res.json({
+            error: "User does not exist!"
         })
         return;
     }
-    const userId = user.id;
-    const token = jwt.sign({
-        userId
-    }, JWT_SECRET);
+
+    const matchPassword = await brcypt.compare(password, user.password)
+
+    if (!matchPassword) {
+        res.json({
+            error: "Invalid Credentials!"
+        })
+        return;
+    }
+
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET! || "123123")
 
     res.json({
         token
     })
+
 })
+
 
 app.post("/room", middleware, async (req, res) => {
-    console.log("Inside room creation");
-    const data = CreateRoomSchema.safeParse(req.body);
-    if (!data.success) {
+    const validRoom = CreateRoomSchema.safeParse(req.body)
+
+    if (!validRoom.success) {
         res.json({
-            message: "Incorrect inputs"
+            error: "Invalid Room Name"
         })
         return;
     }
-    const userId = req.userId;
-    console.log("userId", userId);
+
+    const userId = req.userId
+
     if (!userId) {
-        res.status(403).json({
-            message: "Unauthorized"
+        res.json({
+            error: "User doesn't exist!"
         })
         return;
     }
-    console.log("Creating room");
-    try {
-        const room = await prismaClient.room.create({
-            data: {
-                slug: data.data.name,
-                adminId: userId
-            }
-        })
-        console.log("Room created");
+
+
+    const { roomName } = validRoom.data
+
+    const existingRoom = await prismaClient.room.findFirst({
+        where: {
+            roomName
+        }
+    })
+
+    if (existingRoom) {
         res.json({
-            roomId: room.id
-        })
-    } catch (e) {
-        console.log(e);
-        res.json({
-            message: "Room already exists"
+            error: "Room already exists!"
         })
         return;
     }
+
+
+
+    const room = await prismaClient.room.create({
+        data: {
+            roomName,
+            userId
+        }
+    })
+
+    res.json({
+        room
+    })
 })
 
-app.get("/chats/:roomId", middleware, async (req, res) => {
-    try {
-        const roomId = Number(req.params.roomId);
-        console.log(req.params.roomId);
-        const messages = await prismaClient.chat.findMany({
-            where: {
-                roomId: roomId
-            },
-            orderBy: {
-                id: "desc"
-            },
-            take: 1000
-        });
+app.get("/room/:roomName", async (req, res) => {
+    const roomName = req.params.roomName
 
-        res.json({
-            messages
-        })
-    } catch (e) {
-        console.log(e);
-        res.json({
-            messages: []
-        })
-    }
+    const room = await prismaClient.room.findFirst({
+        where: {
+            roomName
+        },
+        include: {
+            shape: true
+        }
+    })
+
+    res.json({
+        room
+    })
 
 })
 
-app.listen(3001);
+app.get("/user", middleware, async (req, res) => {
+    const userId = req.userId
+
+    const user = await prismaClient.user.findUnique({
+        where: {
+            id: userId
+        },
+        select: {
+            username: true,
+            id: true,
+            email: true,
+            room: true,
+            shapes: true
+        }
+    })
+
+    res.json({
+        user
+    })
+})
+
+
+
+
+app.listen(3001, () => {
+    console.log("Listening")
+})
+

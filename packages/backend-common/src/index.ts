@@ -1,2 +1,5 @@
+// Queue exports
+export * from './queue/config';
 
-export const JWT_SECRET = process.env.JWT_SECRET || "123123";
+// Redis exports
+export * from './redis/pubsub';

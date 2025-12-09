@@ -1,13 +1,14 @@
 {
   "name": "@repo/backend-common",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    "./config": "./src/index.ts",
-    "./types": "./src/types/types.ts",
-    "./express-types": "./src/types/express.d.ts"
+    ".": "./dist/index.js"
   },
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
@@ -16,8 +17,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "type": "commonjs",
   "dependencies": {
-    "@types/node": "^22.10.5"
+    "@types/bull": "^4.10.4",
+    "@types/node": "^24.10.2",
+    "bull": "^4.16.5",
+    "ioredis": "^5.8.2"
   }
 }
