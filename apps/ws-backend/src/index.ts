@@ -10,7 +10,9 @@ const wss = new WebSocketServer({ port: 8080 })
 const drawQueue = createDrawQueue();
 const eraseQueue = createEraseQueue();
 
-const userManager = new UserManager();
+const { publisher, subscriber } = createPubSubClients();
+
+const userManager = new UserManager(publisher, subscriber);
 
 wss.on("connection", function connection(ws, request) {
 
@@ -59,24 +61,19 @@ wss.on("connection", function connection(ws, request) {
 
         if (parsedData.type === "draw") {
             const roomId = parsedData.roomId
-            const data = parsedData.data
-            console.log("draw", data)
+            const data = parsedData.data;
+
             drawQueue.add({
                 roomId,
                 data,
                 userId
             })
-            const wsConnections = userManager.getConnectionsInRoom(roomId)
-            wsConnections.forEach(connection => {
-                if (connection !== ws && connection.readyState === WebSocket.OPEN) {
-                    connection.send(JSON.stringify({
-                        type: "draw",
-                        data,
-                        roomId
-                    }))
-                }
-            })
-
+            publisher.publish(roomId, JSON.stringify({
+                type: "draw",
+                roomId: roomId,
+                data: data,
+                senderId: userId
+            }));
         }
 
 
@@ -89,16 +86,22 @@ wss.on("connection", function connection(ws, request) {
                 data
             })
 
-            const wsConnections = userManager.getConnectionsInRoom(roomId)
-            wsConnections.forEach(connection => {
-                if (connection !== ws && connection.readyState === WebSocket.OPEN) {
-                    connection.send(JSON.stringify({
-                        type: "erase",
-                        data,
-                        roomId
-                    }))
-                }
-            })
+            // const wsConnections = userManager.getConnectionsInRoom(roomId)
+            // wsConnections.forEach(connection => {
+            //     if (connection !== ws && connection.readyState === WebSocket.OPEN) {
+            //         connection.send(JSON.stringify({
+            //             type: "erase",
+            //             data,
+            //             roomId
+            //         }))
+            //     }
+            // })
+            publisher.publish(roomId, JSON.stringify({
+                type: "erase",
+                roomId: roomId,
+                data: data,
+                senderId: userId
+            }));
         }
 
     })

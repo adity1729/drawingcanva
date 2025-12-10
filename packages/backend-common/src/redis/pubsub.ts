@@ -1,29 +1,18 @@
-import { createRedisClient } from '../queue/config';
+import { createRedisClient } from '../queue/config'; // Adjust path to where your config is
 
-// Redis Pub/Sub channels
-export const CHANNELS = {
-    DRAW: 'draw-channel',
-    ERASE: 'erase-channel',
-} as const;
+export const createPubSubClients = () => {
+    // 1. Create a dedicated connection for publishing messages
+    const publisher = createRedisClient();
 
-export interface BroadcastMessage {
-    type: 'draw' | 'erase';
-    roomId: string;
-    data: any;
-    senderId: string;
-}
+    // 2. Create a dedicated connection for subscribing to channels
+    const subscriber = createRedisClient();
 
-// Helper to create pub/sub clients
-export const createPubSubClients = () => ({
-    publisher: createRedisClient(),
-    subscriber: createRedisClient(),
-});
+    // Optional: Log errors to ensure connections are healthy
+    publisher.on('error', (err) => console.error('Redis Publisher Error:', err));
+    subscriber.on('error', (err) => console.error('Redis Subscriber Error:', err));
 
-// Helper to publish messages
-export const publishMessage = async (
-    publisher: ReturnType<typeof createRedisClient>,
-    channel: string,
-    message: BroadcastMessage
-) => {
-    await publisher.publish(channel, JSON.stringify(message));
+    return {
+        publisher,
+        subscriber
+    };
 };
