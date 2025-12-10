@@ -19,10 +19,8 @@ export class UserManager {
     }
 
     private setupSubscriber() {
-        // channel is basically room id
         this.sub.on("message", (channel, message) => {
             const parsedMessage = JSON.parse(message)
-            console.log("Message received:", parsedMessage);
             if (parsedMessage.type === "draw") {
                 this.broadcastToRoom(channel, parsedMessage.data, parsedMessage.senderId, "draw");
             }
@@ -33,18 +31,14 @@ export class UserManager {
     }
 
     private broadcastToRoom(roomId: string, data: any, senderId: string, type: "draw" | "erase") {
-        console.log("Broadcasting to room:", roomId);
         const room = this.rooms.get(roomId);
         if (!room) {
             return;
         };
-        console.log("room found brodcasting message")
 
         room.forEach(connection => {
             const meta = this.socketMeta.get(connection);
-            // Prevent echoing the message back to the sender
             if (meta && connection.readyState === WebSocket.OPEN) {
-                console.log("Sending message to connection:", connection);
                 connection.send(JSON.stringify({
                     type,
                     data,
@@ -64,24 +58,17 @@ export class UserManager {
     }
 
     joinRoom(connection: WebSocket, roomId: string) {
-        console.log("Joining room:", roomId);
         roomId = roomId.toString();
-        console.log("Room ID:", roomId);
         const meta = this.socketMeta.get(connection)
         if (!meta) {
-            console.log("Meta not found for connection");
             return;
         }
         meta.rooms.add(roomId);
-        console.log("Meta updated for connection");
         const room = this.rooms.get(roomId)
         if (!room || room.size === 0) {
-            console.log("Room not found or empty in join Room");
             this.rooms.set(roomId, new Set([connection]))
             this.sub.subscribe(roomId)
-            console.log(`Subscribed to Redis channel: ${roomId}`);
         } else {
-            console.log("Room found in joinRoom");
             room.add(connection)
         }
     }
@@ -99,7 +86,6 @@ export class UserManager {
             if (room.size === 0) {
                 this.rooms.delete(roomId);
                 this.sub.unsubscribe(roomId);
-                console.log(`Unsubscribed from Redis channel: ${roomId}`);
             }
         }
     }
