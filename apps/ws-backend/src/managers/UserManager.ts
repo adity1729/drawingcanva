@@ -58,7 +58,6 @@ export class UserManager {
     }
 
     joinRoom(connection: WebSocket, roomId: string) {
-        roomId = roomId.toString();
         const meta = this.socketMeta.get(connection)
         if (!meta) {
             return;
@@ -74,7 +73,6 @@ export class UserManager {
     }
 
     leaveRoom(connection: WebSocket, roomId: string) {
-        roomId = roomId.toString();
         const meta = this.socketMeta.get(connection)
         if (!meta) {
             return;

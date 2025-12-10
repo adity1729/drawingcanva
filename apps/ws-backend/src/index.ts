@@ -1,6 +1,5 @@
 import { WebSocket, WebSocketServer } from "ws"
 import { checkUser } from "./checkUser";
-import { prismaClient } from "@repo/db/client"
 import { createDrawQueue, createEraseQueue } from "@repo/backend-common";
 import { createPubSubClients } from "@repo/backend-common";
 import { UserManager } from "./managers/UserManager";
@@ -14,20 +13,26 @@ const { publisher, subscriber } = createPubSubClients();
 
 const userManager = new UserManager(publisher, subscriber);
 
+function publishToRoom(roomId: string, type: "draw" | "erase", data: any, senderId: string) {
+    publisher.publish(roomId, JSON.stringify({
+        type,
+        roomId,
+        data,
+        senderId
+    }));
+}
+
 wss.on("connection", function connection(ws, request) {
 
-    console.log("Client connected trying")
     const url = request.url
 
     if (!url) {
         return;
     }
-    console.log("url", url)
 
     const queryParams = new URLSearchParams(url.split("?")[1])
     const token = queryParams.get("token") || ""
     const userId = checkUser(token)
-    console.log("userId", userId)
 
     if (userId === null) {
         ws.close()
@@ -44,65 +49,39 @@ wss.on("connection", function connection(ws, request) {
 
     ws.on('message', async function message(data) {
         let parsedData;
-
-        if (typeof data !== "string") {
-            parsedData = JSON.parse(data.toString())
-        } else {
-            parsedData = JSON.parse(data)
+        try {
+            parsedData = JSON.parse(data.toString());
+        } catch (e) {
+            return;
         }
 
-        if (parsedData.type === "join_room") {
-            userManager.joinRoom(ws, parsedData.roomId)
+        if (!parsedData.roomId) {
+            return;
         }
+        const roomId = String(parsedData.roomId);
+        const { type, data: payload } = parsedData;
 
-        if (parsedData.type === "leave_room") {
-            userManager.leaveRoom(ws, parsedData.roomId)
+        switch (type) {
+            case "join_room":
+                userManager.joinRoom(ws, roomId);
+                break;
+
+            case "leave_room":
+                userManager.leaveRoom(ws, roomId);
+                break;
+
+            case "draw":
+                drawQueue.add({ roomId, data: payload, userId });
+                publishToRoom(roomId, "draw", payload, userId);
+                break;
+
+            case "erase":
+                eraseQueue.add({ roomId, data: payload });
+                publishToRoom(roomId, "erase", payload, userId);
+                break;
+
+            default:
+                console.warn("Unknown message type:", type);
         }
-
-        if (parsedData.type === "draw") {
-            const roomId = parsedData.roomId
-            const data = parsedData.data;
-
-            drawQueue.add({
-                roomId,
-                data,
-                userId
-            })
-            publisher.publish(roomId, JSON.stringify({
-                type: "draw",
-                roomId: roomId,
-                data: data,
-                senderId: userId
-            }));
-        }
-
-
-        if (parsedData.type === "erase") {
-            const roomId = parsedData.roomId
-            const data = parsedData.data
-
-            eraseQueue.add({
-                roomId,
-                data
-            })
-
-            // const wsConnections = userManager.getConnectionsInRoom(roomId)
-            // wsConnections.forEach(connection => {
-            //     if (connection !== ws && connection.readyState === WebSocket.OPEN) {
-            //         connection.send(JSON.stringify({
-            //             type: "erase",
-            //             data,
-            //             roomId
-            //         }))
-            //     }
-            // })
-            publisher.publish(roomId, JSON.stringify({
-                type: "erase",
-                roomId: roomId,
-                data: data,
-                senderId: userId
-            }));
-        }
-
-    })
+    });
 })
