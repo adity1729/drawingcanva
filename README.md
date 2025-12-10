@@ -17,7 +17,7 @@ Clone the repository and install the root dependencies.
 git clone https://github.com/adity1729/drawingcanva.git
 cd drawingcanva
 pnpm install
-````
+```
 
 ### 2\. Start Services
 
@@ -58,6 +58,16 @@ Once the environment is set, push the schema to the database and generate the Pr
 ```bash
 npx prisma migrate dev --name init
 npx prisma generate
+```
+
+### 3\. Building backend-common
+
+Navigate to the backend-common package to build it.
+
+```bash
+cd packages/backend-common
+pnpm install
+pnpm run build
 ```
 
 ### 4\. Running the Application

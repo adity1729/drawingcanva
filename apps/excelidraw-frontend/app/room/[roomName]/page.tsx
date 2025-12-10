@@ -3,25 +3,23 @@ import { RoomCanvas } from "@/canvas/RoomCanvas"
 import { Toolbar } from "@/components/Toolbar"
 
 
-const page = async ({params}: {
-    params : {
-        roomName :string
-    }
+const page = async ({ params }: {
+    params: Promise<{ id: string }>
 }) => {
 
-    const roomName = (await params).roomName
+    const roomName = (await params).id
 
     const room = await getRoom(roomName)
 
-    if(!room){
+    if (!room) {
         return <p>The room Doesnt exist</p>
     }
 
-  return (
+    return (
 
         <RoomCanvas roomId={room.id} room={room} />
 
-  )
+    )
 }
 
 export default page
