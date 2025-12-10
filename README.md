@@ -1,14 +1,3 @@
-Here is a clean, professional, and well-structured `README.md` based on your commands. I have organized it into logical steps (Installation, Database Setup, and Running the App) to make it easy for other developers to follow.
-
-You can copy the code block below directly into your `README.md` file.
-
------
-
-### Raw Markdown (Copy & Paste)
-
-````markdown
-# Project Name
-
 ## Prerequisites
 
 Ensure you have the following installed on your machine:
