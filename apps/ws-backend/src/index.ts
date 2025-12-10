@@ -3,22 +3,14 @@ import { checkUser } from "./checkUser";
 import { prismaClient } from "@repo/db/client"
 import { createDrawQueue, createEraseQueue } from "@repo/backend-common";
 import { createPubSubClients } from "@repo/backend-common";
+import { UserManager } from "./managers/UserManager";
 
 const wss = new WebSocketServer({ port: 8080 })
 
 const drawQueue = createDrawQueue();
 const eraseQueue = createEraseQueue();
 
-// Redis Pub/Sub for broadcasting
-const { publisher, subscriber } = createPubSubClients();
-
-interface User {
-    ws: WebSocket,
-    rooms: string[],
-    userId: string
-}
-
-const users: User[] = []
+const userManager = new UserManager();
 
 wss.on("connection", function connection(ws, request) {
 
@@ -40,20 +32,13 @@ wss.on("connection", function connection(ws, request) {
         return null;
     }
 
-
-    users.push({
-        userId,
-        ws,
-        rooms: []
-    })
-
-
-
+    userManager.addUser(userId, ws)
 
     ws.on('error', console.error)
 
-
-
+    ws.on('close', () => {
+        userManager.removeUserConnection(ws)
+    })
 
     ws.on('message', async function message(data) {
         let parsedData;
@@ -65,17 +50,11 @@ wss.on("connection", function connection(ws, request) {
         }
 
         if (parsedData.type === "join_room") {
-            const user = users.find(x => x.ws === ws)
-            user?.rooms.push(parsedData.roomId)
+            userManager.joinRoom(ws, parsedData.roomId)
         }
 
         if (parsedData.type === "leave_room") {
-            const user = users.find(x => x.ws === ws)
-            if (!user) {
-                return;
-            }
-
-            user.rooms = user.rooms.filter(x => x === parsedData.room)
+            userManager.leaveRoom(ws, parsedData.roomId)
         }
 
         if (parsedData.type === "draw") {
@@ -87,17 +66,10 @@ wss.on("connection", function connection(ws, request) {
                 data,
                 userId
             })
-            // await prismaClient.shape.create({
-            //     data: {
-            //         roomId: Number(roomId),
-            //         data,
-            //         userId
-            //     }
-            // });
-
-            users.forEach(user => {
-                if (user.rooms.includes(roomId) && user.ws !== ws) {
-                    user.ws.send(JSON.stringify({
+            const wsConnections = userManager.getConnectionsInRoom(roomId)
+            wsConnections.forEach(connection => {
+                if (connection !== ws && connection.readyState === WebSocket.OPEN) {
+                    connection.send(JSON.stringify({
                         type: "draw",
                         data,
                         roomId
@@ -117,9 +89,10 @@ wss.on("connection", function connection(ws, request) {
                 data
             })
 
-            users.forEach(user => {
-                if (user.rooms.includes(roomId) && user.ws !== ws) {
-                    user.ws.send(JSON.stringify({
+            const wsConnections = userManager.getConnectionsInRoom(roomId)
+            wsConnections.forEach(connection => {
+                if (connection !== ws && connection.readyState === WebSocket.OPEN) {
+                    connection.send(JSON.stringify({
                         type: "erase",
                         data,
                         roomId
