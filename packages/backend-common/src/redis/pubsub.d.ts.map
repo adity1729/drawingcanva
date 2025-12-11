@@ -1,1 +1,1 @@
-{"version":3,"file":"pubsub.d.ts","sourceRoot":"","sources":["pubsub.ts"],"names":[],"mappings":"AAEA,eAAO,MAAM,mBAAmB;;;CAe/B,CAAC"}
+{"version":3,"file":"pubsub.d.ts","sourceRoot":"","sources":["pubsub.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,SAAS,CAAC;AAG5B,eAAO,MAAM,mBAAmB,QAAO;IAAE,SAAS,EAAE,KAAK,CAAC;IAAC,UAAU,EAAE,KAAK,CAAA;CAe3E,CAAC"}

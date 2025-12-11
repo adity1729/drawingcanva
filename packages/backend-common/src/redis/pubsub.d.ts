@@ -1,5 +1,6 @@
+import Redis from 'ioredis';
 export declare const createPubSubClients: () => {
-    publisher: import("ioredis").default;
-    subscriber: import("ioredis").default;
+    publisher: Redis;
+    subscriber: Redis;
 };
 //# sourceMappingURL=pubsub.d.ts.map

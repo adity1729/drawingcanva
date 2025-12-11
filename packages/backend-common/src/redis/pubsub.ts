@@ -1,6 +1,7 @@
+import Redis from 'ioredis';
 import { createRedisClient } from '../queue/config'; // Adjust path to where your config is
 
-export const createPubSubClients = () => {
+export const createPubSubClients = (): { publisher: Redis, subscriber: Redis } => {
     // 1. Create a dedicated connection for publishing messages
     const publisher = createRedisClient();
 

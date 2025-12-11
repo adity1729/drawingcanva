@@ -1,13 +1,11 @@
 import { getRoom } from "@/actions/getRoom"
 import { RoomCanvas } from "@/canvas/RoomCanvas"
-import { Toolbar } from "@/components/Toolbar"
 
 
 const page = async ({ params }: {
-    params: Promise<{ id: string }>
+    params: Promise<{ roomName: string }>
 }) => {
-
-    const roomName = (await params).id
+    const { roomName } = await params
 
     const room = await getRoom(roomName)
 
